@@ -3,6 +3,7 @@ This repository contains an implementation of a simplified video Content Deliver
 The system runs entirely inside Mininet to simulate multiple hosts, custom IP addresses, and controllable network conditions (bandwidth and latency).
 What It Does
 
+
 miProxy — a custom HTTP proxy written in C/C++ that intercepts HLS video requests from a browser, measures real-time throughput to the upstream server, smooths it using an exponentially weighted moving average (EWMA), and dynamically rewrites requests to fetch the highest-quality video chunks the connection can reliably support. It supports concurrent browser connections and logs detailed per-segment statistics.
 nameserver — a minimal authoritative DNS server that resolves a single domain (video.cdn.assignment2.test) to one of several content server IPs. It operates in two modes:
 Round-robin: cycles through a static list of server IPs
