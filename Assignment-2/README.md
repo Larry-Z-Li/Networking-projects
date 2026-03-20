@@ -77,5 +77,3 @@ Together, these components allow a standard web browser (e.g. Chromium) to strea
 
 Launch a simple single-server topology:Bashpython3 startTopologyMininet.pyThen open http://10.0.2.100:9000 in Chromium.
 Launch the multi-server + DNS topology:Bashpython3 startTopologyMininetMultiHost.pyTry http://10.0.4.100:9000 or http://10.0.5.100:9000.
-
-Enjoy exploring how video CDNs deliver smooth, high-quality streaming at scale!
