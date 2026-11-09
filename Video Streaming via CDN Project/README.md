@@ -1,41 +1,70 @@
+# Video Streaming via CDN
 
-Markdown# Video Streaming via CDN Project
+This project implements a simplified video content delivery network (CDN) that demonstrates two techniques real streaming services use: adaptive bitrate selection, which picks the video quality the connection can support, and DNS-based load balancing, which picks which server a client uses.
 
-This repository contains an implementation of a simplified video Content Delivery Network (CDN) that demonstrates two core techniques used by real-world streaming services: adaptive bitrate selection and DNS-based server load balancing.
+The whole system runs inside [Mininet](http://mininet.org/), which simulates several hosts with their own IP addresses and lets you control each link's bandwidth and latency.
 
-The system runs entirely inside Mininet to simulate multiple hosts, custom IP addresses, and controllable network conditions (bandwidth and latency).
+![Browsers connect to proxies, which use a DNS server to choose a web server](.images/our-CDN.png)
 
-## What It Does
+## What it does
 
-- **miProxy** — a custom HTTP proxy written in C/C++ that intercepts HLS video requests from a browser, measures real-time throughput to the upstream server, smooths it using an exponentially weighted moving average (EWMA), and dynamically rewrites requests to fetch the highest-quality video chunks the connection can reliably support. It supports concurrent browser connections and logs detailed per-segment statistics.
+- **[`miProxy`](miProxy/)** is an HTTP proxy, written in C++ with POSIX sockets, that sits between a browser and the video web server. For each chunk of an HLS video stream, it measures the throughput to the server, smooths that measurement with an exponentially weighted moving average (EWMA), and rewrites the browser's request to fetch the highest quality the connection can reliably support. It handles several browser connections at once and logs statistics for every chunk.
+- **[`nameserver`](nameserver/)** is a minimal authoritative DNS server that answers queries for a single domain (`video.cdn.assignment2.test`) with the IP address of one of several web servers. It has two modes:
+  - **Round robin:** it cycles through a fixed list of server IP addresses.
+  - **Geographic (lowest cost):** it finds the shortest path through a network topology file, using Dijkstra's algorithm, and returns the server closest to the client that asked.
 
-- **nameserver** — a minimal authoritative DNS server that resolves a single domain (`video.cdn.assignment2.test`) to one of several content server IPs. It operates in two modes:
-  - Round-robin: cycles through a static list of server IPs
-  - Geographic/lowest-cost: computes the shortest path through a given network topology file and returns the closest server to the requesting client’s IP
+Together, they let an ordinary web browser, such as Chromium, stream HLS video at the best quality the network allows, from the most suitable server.
 
-Together, these components allow a standard web browser (e.g. Chromium) to stream HLS video at the best possible quality from the most suitable server, all while running in a controlled Mininet environment.
+## Key features
 
-## Key Features
+- Adaptive bitrate logic moved out of the video player and into the proxy
+- Throughput measured for each video chunk, smoothed with an EWMA
+- HLS manifest parsing, and request rewriting to switch bitrates
+- One process per browser connection (`fork()`), with `select()` relaying data in both directions between the browser and the server
+- DNS message parsing and response generation
+- Fixed log formats for both the proxy and the name server
 
-- Adaptive bitrate logic moved from the player into the proxy
-- Per-segment throughput measurement and EWMA smoothing
-- HLS manifest parsing and URI rewriting for bitrate switching
-- Concurrent connection handling with `select()`
-- Simplified DNS wire-format parsing and response generation
-- Strict logging formats for both proxy and nameserver
+## Directory structure
 
-## Directory Structure
+| Folder | Contents |
+| --- | --- |
+| `miProxy/` | Source code and Makefile for the HTTP proxy |
+| `nameserver/` | Source code and Makefile for the DNS server |
+| `.DNS/` | DNS message classes shared by both programs (linked into each folder as `DNS/`) |
+| `grader/` | Mininet topology scripts, a test web server, sample topology and IP-list files, and tests |
+| `.images/` | Diagrams |
 
-- `miProxy/` — source code, Makefile, and binary for the HTTP proxy
-- `nameserver/` — source code, Makefile, and binary for the DNS server
-- `.images/` — diagrams referenced in documentation
+## How to run
 
-## How to Run (Quick Start)
+### 1. Build both programs
 
-1. Build both components:
-   ```bash
-   cd miProxy && make
-   cd ../nameserver && make
+This requires `g++` with C++20 support:
 
-Launch a simple single-server topology:Bashpython3 startTopologyMininet.pyThen open http://10.0.2.100:9000 in Chromium.
-Launch the multi-server + DNS topology:Bashpython3 startTopologyMininetMultiHost.pyTry http://10.0.4.100:9000 or http://10.0.5.100:9000.
+```bash
+cd miProxy && make
+cd ../nameserver && make
+```
+
+### 2. Start a topology
+
+Run the topology scripts from the `grader/` folder. Mininet needs root privileges, so these scripts usually run with `sudo`.
+
+For one web server and one proxy:
+
+```bash
+cd ../grader
+sudo python3 startTopologyMininet.py
+```
+
+Then open `http://10.0.2.100:9000` in Chromium.
+
+For two web servers, two proxies and the DNS server:
+
+```bash
+cd ../grader
+sudo python3 startTopologyMininetMultiHost.py
+```
+
+Then open `http://10.0.4.100:9000` or `http://10.0.5.100:9000`.
+
+See [`miProxy/README.md`](miProxy/README.md) and [`nameserver/README.md`](nameserver/README.md) for each program's command-line options.

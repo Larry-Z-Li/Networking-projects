@@ -1,2 +1,3 @@
+# WTP-base
 
-Your solutions for part A of the assignment go here.
+Source code for `wSender` and `wReceiver`. See the [project README](../README.md) for how the protocol works and how to build and run both programs.
